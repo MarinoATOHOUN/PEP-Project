@@ -1,0 +1,165 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  /* Couleurs panafricaines jour */
+  --background: #F5F5F5;
+  --foreground: #0D1B2A;
+  --card: #FFFFFF;
+  --card-foreground: #0D1B2A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0D1B2A;
+  --primary: #1B4965;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFD166;
+  --secondary-foreground: #0D1B2A;
+  --muted: #F5F5F5;
+  --muted-foreground: #6B7280;
+  --accent: #FFD166;
+  --accent-foreground: #0D1B2A;
+  --destructive: #EF4444;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #1B4965;
+  --chart-1: #1B4965;
+  --chart-2: #FFD166;
+  --chart-3: #0D1B2A;
+  --chart-4: #F5F5F5;
+  --chart-5: #6B7280;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0D1B2A;
+  --sidebar-primary: #1B4965;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFD166;
+  --sidebar-accent-foreground: #0D1B2A;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #1B4965;
+}
+
+.dark {
+  /* Couleurs panafricaines nuit */
+  --background: #0D1B2A;
+  --foreground: #F5F5F5;
+  --card: #1B4965;
+  --card-foreground: #F5F5F5;
+  --popover: #1B4965;
+  --popover-foreground: #F5F5F5;
+  --primary: #FFD166;
+  --primary-foreground: #0D1B2A;
+  --secondary: #1B4965;
+  --secondary-foreground: #F5F5F5;
+  --muted: #1B4965;
+  --muted-foreground: #9CA3AF;
+  --accent: #FFD166;
+  --accent-foreground: #0D1B2A;
+  --destructive: #EF4444;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #FFD166;
+  --chart-1: #FFD166;
+  --chart-2: #1B4965;
+  --chart-3: #F5F5F5;
+  --chart-4: #9CA3AF;
+  --chart-5: #6B7280;
+  --sidebar: #1B4965;
+  --sidebar-foreground: #F5F5F5;
+  --sidebar-primary: #FFD166;
+  --sidebar-primary-foreground: #0D1B2A;
+  --sidebar-accent: #0D1B2A;
+  --sidebar-accent-foreground: #F5F5F5;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #FFD166;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+  }
+}
+
+/* Animations personnalisées */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 209, 102, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 209, 102, 0.8);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Styles pour les cartes avec hover */
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+}
+
+/* Gradient backgrounds */
+.bg-gradient-africa {
+  background: linear-gradient(135deg, #1B4965 0%, #FFD166 100%);
+}
+
+.bg-gradient-night {
+  background: linear-gradient(135deg, #0D1B2A 0%, #1B4965 100%);
+}
