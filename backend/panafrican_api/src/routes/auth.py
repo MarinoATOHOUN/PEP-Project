@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify
-from src.models.user import db, User
-from src.models.badge import UserPoints
+from flask import Blueprint, request, jsonify, current_app
+from ..models.user import db, User
+from ..models.badge import UserPoints
+from sqlalchemy.exc import IntegrityError
 import jwt
 import datetime
 from functools import wraps
@@ -8,7 +9,6 @@ from functools import wraps
 auth_bp = Blueprint('auth', __name__)
 
 # Clé secrète pour JWT (à changer en production)
-JWT_SECRET = 'your-secret-key-change-in-production'
 
 def token_required(f):
     @wraps(f)
@@ -20,7 +20,7 @@ def token_required(f):
         try:
             if token.startswith('Bearer '):
                 token = token[7:]
-            data = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+            data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
             if not current_user:
                 return jsonify({'message': 'Utilisateur non trouvé'}), 401
@@ -66,10 +66,19 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-        # Créer les points utilisateur
-        user_points = UserPoints(user_id=user.id)
-        db.session.add(user_points)
-        db.session.commit()
+        # Créer les points utilisateur si nécessaire (prévenir INSERT en double)
+        existing_points = UserPoints.query.filter_by(user_id=user.id).first()
+        if not existing_points:
+            try:
+                user_points = UserPoints(user_id=user.id)
+                db.session.add(user_points)
+                db.session.commit()
+            except IntegrityError:
+                # Une autre transaction a peut-être créé la ligne en parallèle.
+                db.session.rollback()
+                user_points = UserPoints.query.filter_by(user_id=user.id).first()
+        else:
+            user_points = existing_points
         
         return jsonify({
             'message': 'Utilisateur créé avec succès',
@@ -99,7 +108,7 @@ def login():
             token = jwt.encode({
                 'user_id': user.id,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)
-            }, JWT_SECRET, algorithm='HS256')
+            }, current_app.config['SECRET_KEY'], algorithm='HS256')
             
             return jsonify({
                 'message': 'Connexion réussie',

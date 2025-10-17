@@ -1,0 +1,145 @@
+/* Personnalisation de l'éditeur React-MDE pour le thème panafricain */
+
+.react-mde {
+  @apply border border-border rounded-md overflow-hidden;
+}
+
+.react-mde * {
+  @apply outline-ring/50;
+}
+
+.react-mde .mde-header {
+  @apply bg-card border-b border-border;
+}
+
+.react-mde .mde-header .mde-tabs button {
+  @apply text-muted-foreground hover:text-foreground transition-colors;
+}
+
+.react-mde .mde-header .mde-tabs button.selected {
+  @apply text-primary border-b-2 border-primary font-semibold;
+}
+
+.react-mde .mde-header .mde-header-group button {
+  @apply text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors;
+}
+
+.react-mde .mde-header .mde-header-group button:hover {
+  @apply bg-accent/20;
+}
+
+.react-mde .mde-header .svg-icon {
+  @apply fill-current;
+}
+
+.react-mde textarea.mde-text {
+  @apply bg-background text-foreground border-0 outline-none resize-none;
+  min-height: 200px;
+}
+
+.react-mde textarea.mde-text:focus {
+  @apply outline-none ring-0;
+}
+
+.react-mde .mde-preview {
+  @apply bg-background text-foreground p-4 min-h-[200px];
+}
+
+.react-mde .mde-preview .mde-preview-content {
+  @apply text-foreground;
+}
+
+/* Style pour le mode sombre */
+.dark .react-mde {
+  @apply border-border;
+}
+
+.dark .react-mde .mde-header {
+  @apply bg-card border-border;
+}
+
+.dark .react-mde textarea.mde-text {
+  @apply bg-background text-foreground;
+}
+
+.dark .react-mde .mde-preview {
+  @apply bg-background text-foreground;
+}
+
+/* Améliorer la lisibilité des icônes dans l'éditeur */
+.react-mde .mde-header-item button {
+  @apply flex items-center justify-center;
+}
+
+.react-mde .mde-header-item button svg {
+  @apply w-4 h-4;
+}
+
+/* Style pour les séparateurs */
+.react-mde .mde-header .mde-header-item.separator {
+  @apply border-r border-border;
+}
+
+/* Animation lors du survol */
+.react-mde .mde-header-group button {
+  @apply transition-all duration-200;
+}
+
+.react-mde .mde-header-group button:active {
+  @apply scale-95;
+}
+
+/* Améliorer le contraste pour l'accessibilité */
+.react-mde textarea.mde-text::placeholder {
+  @apply text-muted-foreground/50;
+}
+
+/* Curseur personnalisé pour l'éditeur */
+.react-mde textarea.mde-text {
+  caret-color: var(--primary);
+}
+
+/* Style pour la zone de prévisualisation */
+.react-mde .mde-preview-content {
+  @apply max-w-none;
+}
+
+.react-mde .mde-preview-content h1,
+.react-mde .mde-preview-content h2,
+.react-mde .mde-preview-content h3,
+.react-mde .mde-preview-content h4,
+.react-mde .mde-preview-content h5,
+.react-mde .mde-preview-content h6 {
+  @apply text-foreground;
+}
+
+.react-mde .mde-preview-content a {
+  @apply text-primary hover:text-primary/80;
+}
+
+.react-mde .mde-preview-content code {
+  @apply bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded;
+}
+
+.react-mde .mde-preview-content pre {
+  @apply bg-accent/10 border border-border rounded-lg p-4;
+}
+
+.react-mde .mde-preview-content blockquote {
+  @apply border-l-4 border-primary/50 bg-accent/10 pl-4 py-2 italic text-muted-foreground;
+}
+
+/* Responsive design pour mobile */
+@media (max-width: 640px) {
+  .react-mde textarea.mde-text {
+    min-height: 150px;
+  }
+  
+  .react-mde .mde-header {
+    @apply flex-wrap;
+  }
+  
+  .react-mde .mde-header-group {
+    @apply text-xs;
+  }
+}

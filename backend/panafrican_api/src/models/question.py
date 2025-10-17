@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from src.models.user import db
+from .user import db
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,7 +11,7 @@ class Question(db.Model):
     country = db.Column(db.String(50), nullable=False)
     votes = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     # Relation avec les réponses
     answers = db.relationship('Answer', backref='question', lazy=True, cascade='all, delete-orphan')
@@ -48,7 +48,7 @@ class Answer(db.Model):
     votes = db.Column(db.Integer, default=0)
     is_accepted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('question.id'), nullable=False)
     
     def to_dict(self):
@@ -76,7 +76,7 @@ class Answer(db.Model):
 class QuestionVote(db.Model):
     __tablename__ = 'question_vote'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('question.id'), nullable=False)
     is_up = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

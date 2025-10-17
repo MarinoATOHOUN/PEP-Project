@@ -1,11 +1,28 @@
-from flask import Blueprint, request, jsonify
-from src.models.user import db, User
-from src.models.question import Question, Answer, QuestionVote
-from src.routes.auth import token_required, JWT_SECRET
+from flask import Blueprint, request, jsonify, current_app
+from ..models.user import db, User
+from ..models.question import Question, Answer, QuestionVote
+from .auth import token_required
 import json
 import jwt
 
 questions_bp = Blueprint('questions', __name__)
+
+@questions_bp.route('/questions/stats', methods=['GET'])
+def get_question_stats():
+    try:
+        total_questions = Question.query.count()
+        resolved_questions = Question.query.join(Answer).filter(Answer.is_accepted == True).distinct().count()
+        total_answers = Answer.query.count()
+        total_votes = db.session.query(db.func.sum(Question.votes)).scalar() or 0
+
+        return jsonify({
+            'total_questions': total_questions,
+            'resolved_questions': resolved_questions,
+            'total_answers': total_answers,
+            'total_votes': total_votes
+        }), 200
+    except Exception as e:
+        return jsonify({'message': f'Erreur lors de la récupération des statistiques: {str(e)}'}), 500
 
 @questions_bp.route('/questions', methods=['GET'])
 def get_questions():
@@ -16,10 +33,10 @@ def get_questions():
         level = request.args.get('level')
         country = request.args.get('country')
         search = request.args.get('search')
-        
+        sort_by = request.args.get('sort_by', 'newest')
+
         query = Question.query
         
-        # Filtres
         if subject:
             query = query.filter(Question.subject == subject)
         if level:
@@ -29,12 +46,15 @@ def get_questions():
         if search:
             query = query.filter(Question.title.contains(search) | Question.content.contains(search))
         
-        # Pagination et tri par date
-        questions_pagination = query.order_by(Question.created_at.desc()).paginate(
+        if sort_by == 'popular':
+            query = query.order_by(Question.votes.desc(), Question.created_at.desc())
+        else:
+            query = query.order_by(Question.created_at.desc())
+
+        questions_pagination = query.paginate(
             page=page, per_page=per_page, error_out=False
         )
 
-        # Tenter de récupérer l'utilisateur courant depuis le header Authorization pour inclure l'information de vote
         auth_header = request.headers.get('Authorization')
         current_user = None
         if auth_header:
@@ -42,7 +62,7 @@ def get_questions():
                 token = auth_header
                 if token.startswith('Bearer '):
                     token = token[7:]
-                data = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+                data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
                 current_user = User.query.get(data['user_id'])
             except Exception:
                 current_user = None
@@ -50,9 +70,7 @@ def get_questions():
         questions_list = []
         for q in questions_pagination.items:
             qd = q.to_dict()
-            # Nombre de réponses
             qd['answers'] = len(q.answers)
-            # Inclure le vote de l'utilisateur courant si présent
             qd['user_vote'] = None
             if current_user:
                 existing = QuestionVote.query.filter_by(user_id=current_user.id, question_id=q.id).first()
@@ -107,27 +125,26 @@ def get_question(question_id):
     try:
         question = Question.query.get_or_404(question_id)
         
-        # Récupérer les réponses
         answers = Answer.query.filter_by(question_id=question_id).order_by(Answer.votes.desc(), Answer.created_at.asc()).all()
         
         question_data = question.to_dict()
         question_data['answers'] = [answer.to_dict() for answer in answers]
 
-        # Tenter de récupérer l'utilisateur courant depuis le header Authorization pour inclure l'information de vote
         auth_header = request.headers.get('Authorization')
+        question_data['user_vote'] = None
         if auth_header:
             try:
                 token = auth_header
                 if token.startswith('Bearer '):
                     token = token[7:]
-                data = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+                data = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])
                 current_user = User.query.get(data['user_id'])
-                existing = QuestionVote.query.filter_by(user_id=current_user.id, question_id=question_id).first()
-                question_data['user_vote'] = 'up' if existing and existing.is_up else ('down' if existing and not existing.is_up else None)
+                if current_user:
+                    existing = QuestionVote.query.filter_by(user_id=current_user.id, question_id=question_id).first()
+                    if existing:
+                        question_data['user_vote'] = 'up' if existing.is_up else 'down'
             except Exception:
-                question_data['user_vote'] = None
-        else:
-            question_data['user_vote'] = None
+                pass # Ignore if token is invalid, it's an optional authentication
         
         return jsonify({'question': question_data}), 200
         
@@ -168,34 +185,28 @@ def vote_question(current_user, question_id):
     try:
         question = Question.query.get_or_404(question_id)
         data = request.get_json()
-        vote_type = data.get('type')  # 'up' or 'down'
-
-        # Chercher un vote existant de cet utilisateur
-        existing = QuestionVote.query.filter_by(user_id=current_user.id, question_id=question_id).first()
+        vote_type = data.get('type')
 
         if vote_type not in ('up', 'down'):
             return jsonify({'message': 'Type de vote invalide'}), 400
 
+        existing = QuestionVote.query.filter_by(user_id=current_user.id, question_id=question_id).first()
         is_up = (vote_type == 'up')
 
         if existing:
-            # Si même type -> annuler le vote
             if existing.is_up == is_up:
                 db.session.delete(existing)
-                question.votes = question.votes - 1 if existing.is_up else question.votes + 1
+                question.votes -= 1 if is_up else -1
             else:
-                # Changer le sens du vote
                 existing.is_up = is_up
-                question.votes = question.votes + 2 if is_up else question.votes - 2
+                question.votes += 2 if is_up else -2
         else:
-            # Nouveau vote
             new_vote = QuestionVote(user_id=current_user.id, question_id=question_id, is_up=is_up)
             db.session.add(new_vote)
-            question.votes = question.votes + 1 if is_up else question.votes - 1
+            question.votes += 1 if is_up else -1
 
         db.session.commit()
 
-        # Retourner aussi l'état du vote pour le client
         user_vote = None
         existing_after = QuestionVote.query.filter_by(user_id=current_user.id, question_id=question_id).first()
         if existing_after:
@@ -218,7 +229,7 @@ def vote_answer(current_user, answer_id):
         answer = Answer.query.get_or_404(answer_id)
         data = request.get_json()
         
-        vote_type = data.get('type')  # 'up' ou 'down'
+        vote_type = data.get('type')
         
         if vote_type == 'up':
             answer.votes += 1
@@ -245,14 +256,11 @@ def accept_answer(current_user, answer_id):
         answer = Answer.query.get_or_404(answer_id)
         question = Question.query.get(answer.question_id)
         
-        # Vérifier que l'utilisateur est l'auteur de la question
         if question.user_id != current_user.id:
             return jsonify({'message': 'Non autorisé'}), 403
         
-        # Désaccepter toutes les autres réponses
         Answer.query.filter_by(question_id=question.id).update({'is_accepted': False})
         
-        # Accepter cette réponse
         answer.is_accepted = True
         db.session.commit()
         
@@ -264,4 +272,3 @@ def accept_answer(current_user, answer_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'message': f'Erreur lors de l\'acceptation: {str(e)}'}), 500
-

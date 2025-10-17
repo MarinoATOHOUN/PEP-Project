@@ -1,7 +1,16 @@
 from flask import Blueprint, jsonify, request
-from src.models.user import User, db
+from ..models.user import User, db
 
 user_bp = Blueprint('user', __name__)
+
+@user_bp.route('/users/search', methods=['GET'])
+def search_users():
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({'users': []})
+    
+    users = User.query.filter(User.username.ilike(f'%{query}%')).all()
+    return jsonify({'users': [user.to_dict_simple() for user in users]})
 
 @user_bp.route('/users', methods=['GET'])
 def get_users():

@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Layout from './components/Layout';
 import HomePage from './components/HomePage';
 import AuthPage from './components/AuthPage';
 import QuestionsPage from './components/QuestionsPage';
 import MentorsPage from './components/MentorsPage';
 import BadgesPage from './components/BadgesPage';
+import MessagesPage from './components/MessagesPage';
 import './App.css';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
+  // track which conversation/user should be opened when navigating to Messages
+  const [currentConversationId, setCurrentConversationId] = useState(null);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -22,9 +26,11 @@ function App() {
       case 'questions':
         return <QuestionsPage />;
       case 'mentors':
-        return <MentorsPage />;
+        return <MentorsPage onNavigate={setCurrentPage} onOpenConversation={setCurrentConversationId} />;
       case 'badges':
         return <BadgesPage />;
+      case 'messages':
+        return <MessagesPage initialConversationId={currentConversationId} />;
       case 'opportunities':
         return <div className="container mx-auto px-4 py-8 text-center">
           <h1 className="text-3xl font-bold mb-4">Opportunités</h1>
@@ -44,13 +50,15 @@ function App() {
 
   return (
     <AuthProvider>
-      {currentPage === 'auth' ? (
-        <AuthPage />
-      ) : (
-        <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
-          {renderPage()}
-        </Layout>
-      )}
+      <NotificationProvider>
+        {currentPage === 'auth' ? (
+          <AuthPage />
+        ) : (
+          <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
+            {renderPage()}
+          </Layout>
+        )}
+      </NotificationProvider>
     </AuthProvider>
   );
 }

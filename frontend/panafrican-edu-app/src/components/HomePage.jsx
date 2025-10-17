@@ -17,7 +17,7 @@ import {
 import africaEducationImg from '../assets/ckJ5vFRaxjpA.jpg';
 import teacherStudentsImg from '../assets/4qKjnfQiDiLf.jpg';
 import mentorshipImg from '../assets/Lehm1ziozoh2.jpg';
-import { questionsService, mentorsService, badgesService } from '@/services/api';
+import { questionsService, mentorsService, badgesService, statsService } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
 
 const HomePage = ({ onNavigate }) => {
@@ -30,6 +30,7 @@ const HomePage = ({ onNavigate }) => {
   ]);
   const [recentQuestions, setRecentQuestions] = useState([]);
   const [topMentors, setTopMentors] = useState([]);
+  const [helpedStudents, setHelpedStudents] = useState('...');
   const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
@@ -65,6 +66,15 @@ const HomePage = ({ onNavigate }) => {
       .catch(err => {
         setApiError('Impossible de récupérer les badges.');
         setStats(prev => prev.map((s, i) => i === 2 ? { ...s, value: '...' } : s));
+      });
+
+    statsService.getHelpedStudents()
+      .then(res => {
+        setHelpedStudents(res.helped_students || '...');
+      })
+      .catch(err => {
+        setApiError('Impossible de récupérer le nombre d\'étudiants aidés.');
+        setHelpedStudents('...');
       });
 
     // Pays représentés (mock)
@@ -119,13 +129,17 @@ const HomePage = ({ onNavigate }) => {
                 Posez vos questions, trouvez des mentors et progressez ensemble vers l'excellence.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="animate-pulse-glow" onClick={() => onNavigate && onNavigate('auth')}>
-                  Commencer maintenant
-                  <ArrowRight className="ml-2" size={20} />
-                </Button>
-                <Button variant="outline" size="lg" onClick={() => onNavigate && onNavigate('mentors')}>
-                  Découvrir la communauté
-                </Button>
+                {!isAuthenticated && (
+                  <>
+                    <Button size="lg" className="animate-pulse-glow" onClick={() => onNavigate && onNavigate('auth')}>
+                      Commencer maintenant
+                      <ArrowRight className="ml-2" size={20} />
+                    </Button>
+                    <Button variant="outline" size="lg" onClick={() => onNavigate && onNavigate('mentors')}>
+                      Découvrir la communauté
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
             <div className="relative">
@@ -140,7 +154,7 @@ const HomePage = ({ onNavigate }) => {
                     <Heart className="text-primary-foreground" size={24} />
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">23,456</p>
+                    <p className="font-semibold text-foreground">{helpedStudents}</p>
                     <p className="text-sm text-muted-foreground">Étudiants aidés</p>
                   </div>
                 </div>
@@ -153,10 +167,10 @@ const HomePage = ({ onNavigate }) => {
       {/* Statistiques */}
       <section className="container mx-auto px-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, index) => {
+          {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Card key={index} className="text-center card-hover">
+              <Card key={stat.label} className="text-center card-hover">
                 <CardContent className="pt-6">
                   <div className={`w-12 h-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center`}>
                     <Icon className={stat.color} size={24} />
@@ -182,11 +196,11 @@ const HomePage = ({ onNavigate }) => {
           </p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => {
+          {features.map((feature) => {
             const Icon = feature.icon;
             const routes = ['questions', 'mentors', 'badges'];
             return (
-              <Card key={index} className="card-hover overflow-hidden" onClick={() => onNavigate && onNavigate(routes[index])}>
+              <Card key={feature.title} className="card-hover overflow-hidden" onClick={() => onNavigate && onNavigate(routes[features.indexOf(feature)])}>
                 <div className="aspect-video relative overflow-hidden">
                   <img 
                     src={feature.image} 
@@ -228,8 +242,8 @@ const HomePage = ({ onNavigate }) => {
               {recentQuestions.length === 0 ? (
                 <div className="text-muted-foreground text-center">Aucune question récente</div>
               ) : (
-                recentQuestions.map((question, index) => (
-                  <Card key={index} className="card-hover">
+                recentQuestions.map((question) => (
+                  <Card key={question.id || question._id || question.title} className="card-hover">
                     <CardContent className="pt-4">
                       <div className="flex items-start justify-between mb-3">
                         <Badge variant="secondary">{question.subject}</Badge>
@@ -267,8 +281,8 @@ const HomePage = ({ onNavigate }) => {
               {topMentors.length === 0 ? (
                 <div className="text-muted-foreground text-center">Aucun mentor populaire</div>
               ) : (
-                topMentors.map((mentor, index) => (
-                  <Card key={index} className="card-hover">
+                topMentors.map((mentor) => (
+                  <Card key={mentor.id || mentor.user?.id || mentor.user?.username || mentor.user?.email} className="card-hover">
                     <CardContent className="pt-4">
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-gradient-africa rounded-full flex items-center justify-center">

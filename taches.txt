@@ -1,0 +1,6 @@
+l'édition de questions et de réponses se fait avec un formulair WYSIWYG , l'affichage de ces valeurs doit correspondre au format requis de sorte que le texte brute avec la syntaxe WYSIWYG soit affiché correctement au niveau de la page question principalement pour les questions et leurs réponses.
+
+Sur la page mentor,
+
+je veux maintenant travailler avec le frontend :
+Je veux changer de palette de couleur. Je veux utiliser cette palette de couleur : ["#dad7cd","#a3b18a","#588157","#3a5a40","#344e41"]. Change toute les couleurs du frontend et adapte la nouvelle palette de couleur

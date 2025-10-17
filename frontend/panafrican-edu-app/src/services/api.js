@@ -91,6 +91,10 @@ export const questionsService = {
     return await apiRequest(`/questions?${queryString}`);
   },
 
+  getQuestionsStats: async () => {
+    return await apiRequest('/questions/stats');
+  },
+
   getQuestion: async (id) => {
     return await apiRequest(`/questions/${id}`);
   },
@@ -165,6 +169,46 @@ export const mentorsService = {
       body: JSON.stringify({ response }),
     });
   },
+
+  // Disponibilités
+  getMentorAvailabilities: async (mentorId) => {
+    return await apiRequest(`/mentors/${mentorId}/availabilities`);
+  },
+
+  setMentorAvailabilities: async (availabilities) => {
+    return await apiRequest('/mentors/availabilities', {
+      method: 'POST',
+      body: JSON.stringify({ availabilities }),
+    });
+  },
+
+  getAvailableSlots: async (mentorId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return await apiRequest(`/mentors/${mentorId}/available-slots?${queryString}`);
+  },
+
+  // Sessions
+  bookSession: async (mentorId, sessionData) => {
+    return await apiRequest(`/mentors/${mentorId}/book`, {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
+  },
+
+  getSessions: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return await apiRequest(`/mentorship/sessions?${queryString}`);
+  },
+
+  getSession: async (sessionId) => {
+    return await apiRequest(`/mentorship/sessions/${sessionId}`);
+  },
+
+  cancelSession: async (sessionId) => {
+    return await apiRequest(`/mentorship/sessions/${sessionId}/cancel`, {
+      method: 'POST',
+    });
+  },
 };
 
 // Services pour les badges et points
@@ -231,7 +275,11 @@ export const opportunitiesService = {
 };
 
 // Service générique pour les utilisateurs
-export const usersService = {
+export const userService = {
+  searchUsers: async (query) => {
+    return await apiRequest(`/users/search?q=${query}`);
+  },
+
   getUsers: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return await apiRequest(`/users?${queryString}`);
@@ -242,6 +290,30 @@ export const usersService = {
   },
 };
 
+// Services pour la messagerie
+export const messagesService = {
+  getConversations: async () => {
+    return await apiRequest('/messages/conversations');
+  },
+
+  getConversation: async (userId) => {
+    return await apiRequest(`/messages/conversation/${userId}`);
+  },
+
+  sendMessage: async (messageData) => {
+    return await apiRequest('/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  },
+};
+
+export const statsService = {
+  getHelpedStudents: async () => {
+    return await apiRequest('/stats/helped-students');
+  },
+};
+
 export default {
   auth: authService,
   questions: questionsService,
@@ -249,6 +321,8 @@ export default {
   badges: badgesService,
   notifications: notificationsService,
   opportunities: opportunitiesService,
-  users: usersService,
+  user: userService,
+  stats: statsService,
+  messages: messagesService,
 };
 

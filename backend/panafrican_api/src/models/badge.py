@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from src.models.user import db
+from .user import db
 
 class Badge(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -26,7 +26,7 @@ class Badge(db.Model):
 
 class UserBadge(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     badge_id = db.Column(db.Integer, db.ForeignKey('badge.id'), nullable=False)
     earned_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -45,7 +45,7 @@ class UserBadge(db.Model):
 
 class UserPoints(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
     total_points = db.Column(db.Integer, default=0)
     contribution_points = db.Column(db.Integer, default=0)
     mentorship_points = db.Column(db.Integer, default=0)

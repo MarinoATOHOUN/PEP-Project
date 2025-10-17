@@ -15,8 +15,9 @@ import {
   ChevronDown,
   Check
 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import ReactMde from 'react-mde';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
+import 'react-mde/lib/styles/css/react-mde-all.css';
 import { useAuth } from '@/context/AuthContext';
 import { questionsService } from '@/services/api';
 
@@ -36,19 +37,26 @@ const QuestionsPage = () => {
 
   // Remplacer le tableau statique par des données provenant de l'API
   const [questions, setQuestions] = useState([]);
+  const [popularQuestions, setPopularQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Modal / édition markdown
   const [showAskModal, setShowAskModal] = useState(false);
   const [newQuestion, setNewQuestion] = useState({ title: '', content: '', subject: '', level: '' });
+  const [selectedTab, setSelectedTab] = useState('write');
+
 
   // Expansion des questions / affichage détails
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
   const [questionDetails, setQuestionDetails] = useState({});
   const [answerDrafts, setAnswerDrafts] = useState({});
 
+  const [stats, setStats] = useState({ total_questions: 0, resolved_questions: 0, total_answers: 0, total_votes: 0 });
+
   useEffect(() => {
     fetchQuestions();
+    fetchPopularQuestions();
+    fetchStats();
   }, []);
 
   const fetchQuestions = async () => {
@@ -71,32 +79,32 @@ const QuestionsPage = () => {
     setLoading(false);
   };
 
-  // Utilitaire pour insérer du Markdown dans un textarea par id
-  const insertMarkdown = (editorId, before, after = '', placeholder = '') => {
-    const ta = document.getElementById(editorId);
-    if (!ta) return;
-    const start = ta.selectionStart || 0;
-    const end = ta.selectionEnd || 0;
-    const selected = ta.value.substring(start, end) || placeholder;
-    const newValue = ta.value.substring(0, start) + before + selected + after + ta.value.substring(end);
-    ta.value = newValue;
-    // Trigger React state update if bound
-    const ev = new Event('input', { bubbles: true });
-    ta.dispatchEvent(ev);
-    ta.focus();
-    // place cursor after inserted content
-    const cursorPos = start + before.length + selected.length + after.length;
-    ta.selectionStart = ta.selectionEnd = cursorPos;
+  const fetchPopularQuestions = async () => {
+    try {
+      const res = await questionsService.getQuestions({ sort_by: 'popular', per_page: 5 });
+      const normalized = (res.questions || []).map(q => ({
+        ...q,
+        votes: Number(q.votes) || 0,
+        answers: Number(q.answers) || q.answers_count || 0,
+      }));
+      setPopularQuestions(normalized);
+    } catch (e) {
+      console.error('Failed to fetch popular questions:', e);
+    }
   };
 
-  const handleOpenComment = (questionId) => {
-    // Open expand and focus answer textarea
-    toggleExpand(questionId);
-    setTimeout(() => {
-      const el = document.getElementById(`answer-${questionId}`);
-      if (el) el.focus();
-    }, 150);
+
+  const fetchStats = async () => {
+    try {
+      const res = await questionsService.getQuestionsStats();
+      setStats(res);
+    } catch (e) {
+      console.error(e);
+    }
   };
+
+
+
 
   const handleOpenAsk = () => {
     if (!isAuthenticated) return; // empêchez si non connecté
@@ -125,6 +133,7 @@ const QuestionsPage = () => {
       setQuestions(prev => [created, ...prev]);
       setShowAskModal(false);
       setNewQuestion({ title: '', content: '', subject: '', level: '' });
+      fetchStats(); // Refresh stats
     } catch (err) {
       console.error(err);
       alert(err.message || 'Erreur lors de la création de la question');
@@ -153,6 +162,7 @@ const QuestionsPage = () => {
       if (questionDetails[questionId]) {
         setQuestionDetails(prev => ({ ...prev, [questionId]: { ...prev[questionId], votes: res.votes, user_vote: res.user_vote } }));
       }
+      fetchStats(); // Refresh stats
     } catch (e) {
       console.error(e);
       alert(e.message || 'Erreur lors du vote');
@@ -170,6 +180,7 @@ const QuestionsPage = () => {
       }
       setQuestions(prev => prev.map(q => q.id === questionId ? { ...q, answers: q.answers + 1 } : q));
       setAnswerDrafts(prev => ({ ...prev, [questionId]: '' }));
+      fetchStats(); // Refresh stats
     } catch (e) {
       console.error(e);
       alert(e.message || 'Erreur lors de l\'envoi de la réponse');
@@ -202,13 +213,6 @@ const QuestionsPage = () => {
     // author may be nested object
     return (author.first_name || author.username || author.id) + (author.last_name ? ` ${author.last_name}` : '');
   };
-
-  // Séparer l'aperçu Markdown dans un memo pour éviter de relancer des rendus coûteux
-  const MarkdownPreview = React.useMemo(() => ({ content }) => (
-    <div className="w-full h-full overflow-auto">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-    </div>
-  ), []);
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
@@ -272,29 +276,17 @@ const QuestionsPage = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown('newquestion-content', '# ', '', 'Titre')}>H1</button>
-                    <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown('newquestion-content', '## ', '', 'Titre')}>H2</button>
-                    <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown('newquestion-content', '**', '**', 'gras')}>B</button>
-                    <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown('newquestion-content', '*', '*', 'italique')}>I</button>
-                    <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown('newquestion-content', '`', '`', 'code')}>code</button>
-                    <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown('newquestion-content', '[', '](https://)', 'texte')}>lien</button>
-                  </div>
-                  <textarea
-                   required
-                   placeholder="Rédigez votre question en Markdown..."
-                   id="newquestion-content"
-                   value={newQuestion.content}
-                   onChange={(e) => setNewQuestion(prev => ({ ...prev, content: e.target.value }))}
-                   className="w-full h-64 p-3 border border-input rounded-md bg-background text-foreground resize-none"
-                 />
-                </div>
-                <div className="w-full h-64 p-3 border border-input rounded-md bg-background overflow-auto">
-                  <MarkdownPreview content={newQuestion.content || '*Aperçu en Markdown*'} />
-                </div>
-               </div>
+              <div className="container prose prose-sm sm:prose-base max-w-none">
+                <ReactMde
+                  value={newQuestion.content}
+                  onChange={(content) => setNewQuestion(prev => ({ ...prev, content }))}
+                  selectedTab={selectedTab}
+                  onTabChange={setSelectedTab}
+                  generateMarkdownPreview={(markdown) =>
+                    Promise.resolve(<MarkdownRenderer content={markdown} />)
+                  }
+                />
+              </div>
 
               <div className="flex flex-col md:flex-row justify-end gap-2">
                 <Button variant="ghost" onClick={() => setShowAskModal(false)}>Annuler</Button>
@@ -358,14 +350,14 @@ const QuestionsPage = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="text-center">
           <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-primary">{filteredQuestions.length}</div>
-            <div className="text-sm text-muted-foreground">Questions trouvées</div>
+            <div className="text-2xl font-bold text-primary">{stats.total_questions}</div>
+            <div className="text-sm text-muted-foreground">Questions totales</div>
           </CardContent>
         </Card>
         <Card className="text-center">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-green-600">
-              {filteredQuestions.filter(q => q.isAnswered).length}
+              {stats.resolved_questions}
             </div>
             <div className="text-sm text-muted-foreground">Résolues</div>
           </CardContent>
@@ -373,7 +365,7 @@ const QuestionsPage = () => {
         <Card className="text-center">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-blue-600">
-              {filteredQuestions.reduce((sum, q) => sum + q.answers, 0)}
+              {stats.total_answers}
             </div>
             <div className="text-sm text-muted-foreground">Réponses totales</div>
           </CardContent>
@@ -381,136 +373,163 @@ const QuestionsPage = () => {
         <Card className="text-center">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-yellow-600">
-              {filteredQuestions.reduce((sum, q) => sum + q.votes, 0)}
+              {stats.total_votes}
             </div>
             <div className="text-sm text-muted-foreground">Votes totaux</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Liste des questions */}
-      <div className="space-y-4">
-        {filteredQuestions.map((question) => (
-          <Card key={question.id} className="card-hover">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <Badge variant="secondary">{question.subject}</Badge>
-                  <Badge variant="outline">{question.level}</Badge>
-                  {question.isAnswered && (
-                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20">
-                      <Check size={12} className="mr-1" />
-                      Résolu
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                  <div className="flex items-center space-x-1">
-                    <button className="hover:text-green-600 transition-colors" onClick={() => handleVote(question.id, 'up')}>
-                      <ChevronUp size={16} />
-                    </button>
-                    <span className="font-medium">{question.votes}</span>
-                    <button className="hover:text-red-600 transition-colors" onClick={() => handleVote(question.id, 'down')}>
-                      <ChevronDown size={16} />
-                    </button>
+      {/* Contenu principal: Questions et barre latérale */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Colonne principale: Liste des questions */}
+        <div className="lg:col-span-2 space-y-4">
+          {filteredQuestions.map((question) => (
+            <Card key={question.id} className="card-hover">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <Badge variant="secondary">{question.subject}</Badge>
+                    <Badge variant="outline">{question.level}</Badge>
+                    {question.isAnswered && (
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20">
+                        <Check size={12} className="mr-1" />
+                        Résolu
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex items-center">
-                    <button className="flex items-center text-sm text-muted-foreground hover:text-foreground" onClick={() => handleOpenComment(question.id)}>
-                      <MessageCircle size={14} className="mr-1" />
-                      <span className="font-medium">{Number(question.answers) || 0}</span>
-                    </button>
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                    <div className="flex items-center space-x-1">
+                      <button className="hover:text-green-600 transition-colors" onClick={() => handleVote(question.id, 'up')}>
+                        <ChevronUp size={16} />
+                      </button>
+                      <span className="font-medium">{question.votes}</span>
+                      <button className="hover:text-red-600 transition-colors" onClick={() => handleVote(question.id, 'down')}>
+                        <ChevronDown size={16} />
+                      </button>
+                    </div>
+                    <div className="flex items-center">
+                      <button className="flex items-center text-sm text-muted-foreground hover:text-foreground" onClick={() => toggleExpand(question.id)}>
+                        <MessageCircle size={14} className="mr-1" />
+                        <span className="font-medium">{Number(question.answers) || 0}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <h3 className="text-lg font-semibold text-foreground mb-2 hover:text-primary cursor-pointer" onClick={() => toggleExpand(question.id)}>
-                {question.title}
-              </h3>
-              
-              <p className="text-muted-foreground mb-4 line-clamp-2">
-                {question.content}
-              </p>
-
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center">
-                    <User size={14} className="mr-1" />
-                    {getDisplayName(question.author)}
-                  </div>
-                  <span>{question.country}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock size={14} className="mr-1" />
-                  {getTimeAgo(question.createdAt)}
-                </div>
-              </div>
-
-              {expandedQuestionId === question.id && questionDetails[question.id] && (
-                <div className="mt-4">
-                  <ReactMarkdown 
-                    className="prose prose-sm sm:prose-base text-foreground"
-                    remarkPlugins={[remarkGfm]}
-                    children={questionDetails[question.id].content}
+                <h3 className="text-lg font-semibold text-foreground mb-2 hover:text-primary cursor-pointer" onClick={() => toggleExpand(question.id)}>
+                  {question.title}
+                </h3>
+                
+                <div className="text-muted-foreground mb-4 line-clamp-3 overflow-hidden">
+                  <MarkdownRenderer 
+                    content={question.content}
+                    className="text-sm"
                   />
-                  
-                  {/* Formulaire de réponse */}
-                  <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown(`answer-${question.id}`, '# ', '', 'Titre')}>H1</button>
-                        <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown(`answer-${question.id}`, '**', '**', 'gras')}>B</button>
-                        <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown(`answer-${question.id}`, '*', '*', 'italique')}>I</button>
-                        <button type="button" className="px-2 py-1 rounded hover:bg-muted" onClick={() => insertMarkdown(`answer-${question.id}`, '`', '`', 'code')}>code</button>
-                      </div>
-                      <textarea
-                        id={`answer-${question.id}`}
-                        value={answerDrafts[question.id] || ''}
-                        onChange={(e) => setAnswerDrafts(prev => ({ ...prev, [question.id]: e.target.value }))}
-                        className="w-full h-32 p-3 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-                        placeholder={isAuthenticated ? 'Rédigez votre réponse en Markdown...' : 'Connectez-vous pour répondre'}
-                        disabled={!isAuthenticated}
-                      />
-                    </div>
-                     <div className="w-full h-32 p-3 border border-input rounded-md bg-background overflow-auto">
-                       <ReactMarkdown remarkPlugins={[remarkGfm]} className="prose prose-sm">
-                         {answerDrafts[question.id] || '*Aperçu en Markdown*'}
-                       </ReactMarkdown>
-                     </div>
-                     <div className="lg:col-span-2 flex justify-end gap-2">
-                       <Button variant="ghost" onClick={() => setAnswerDrafts(prev => ({ ...prev, [question.id]: '' }))}>Annuler</Button>
-                       <Button onClick={() => handleSubmitAnswer(question.id)} disabled={!isAuthenticated}>Envoyer ma réponse</Button>
-                     </div>
-                   </div>
-
-                  {/* Affichage des réponses */}
-                  {questionDetails[question.id].answers && questionDetails[question.id].answers.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {questionDetails[question.id].answers.map(answer => (
-                         <div key={answer.id} className="p-3 border border-input rounded-md bg-background">
-                           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-                             <div className="flex items-center space-x-2">
-                               <User size={14} className="text-muted-foreground" />
-                              <span className="font-medium text-foreground">{getDisplayName(answer.author)}</span>
-                             </div>
-                             <div className="flex items-center space-x-1">
-                               <Clock size={14} className="text-muted-foreground" />
-                               <span className="text-muted-foreground">{getTimeAgo(answer.createdAt)}</span>
-                             </div>
-                           </div>
-                           <ReactMarkdown 
-                             className="prose prose-sm sm:prose-base text-foreground"
-                             remarkPlugins={[remarkGfm]}
-                             children={answer.content}
-                           />
-                         </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              )}
+
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center">
+                      <User size={14} className="mr-1" />
+                      {getDisplayName(question.author)}
+                    </div>
+                    <span>{question.country}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock size={14} className="mr-1" />
+                    {getTimeAgo(question.createdAt)}
+                  </div>
+                </div>
+
+                {expandedQuestionId === question.id && questionDetails[question.id] && (
+                  <div className="mt-4">
+                    <MarkdownRenderer 
+                      content={questionDetails[question.id].content}
+                      className="mb-6"
+                    />
+                    
+                    {/* Formulaire de réponse */}
+                    <div className="mt-4 prose prose-sm sm:prose-base max-w-none">
+                      <ReactMde
+                        value={answerDrafts[question.id] || ''}
+                        onChange={(content) => setAnswerDrafts(prev => ({ ...prev, [question.id]: content }))}
+                        selectedTab={selectedTab}
+                        onTabChange={setSelectedTab}
+                        generateMarkdownPreview={(markdown) =>
+                          Promise.resolve(<MarkdownRenderer content={markdown} />)
+                        }
+                      />
+                      <div className="flex justify-end gap-2 mt-2">
+                        <Button variant="ghost" onClick={() => setAnswerDrafts(prev => ({ ...prev, [question.id]: '' }))}>Annuler</Button>
+                        <Button onClick={() => handleSubmitAnswer(question.id)} disabled={!isAuthenticated}>Envoyer ma réponse</Button>
+                      </div>
+                    </div>
+
+                    {/* Affichage des réponses */}
+                    {questionDetails[question.id].answers && questionDetails[question.id].answers.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {questionDetails[question.id].answers.map(answer => (
+                           <div key={answer.id} className="p-3 border border-input rounded-md bg-background">
+                             <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                               <div className="flex items-center space-x-2">
+                                 <User size={14} className="text-muted-foreground" />
+                                <span className="font-medium text-foreground">{getDisplayName(answer.author)}</span>
+                               </div>
+                               <div className="flex items-center space-x-1">
+                                 <Clock size={14} className="text-muted-foreground" />
+                                 <span className="text-muted-foreground">{getTimeAgo(answer.createdAt)}</span>
+                               </div>
+                             </div>
+                             <MarkdownRenderer 
+                               content={answer.content}
+                             />
+                           </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Colonne latérale: Questions populaires */}
+        <div className="lg:col-span-1 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <TrendingUp className="mr-2" />
+                Questions populaires
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {popularQuestions.map((q) => (
+                  <div key={q.id} className="flex flex-col p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <a href="#" className="text-sm font-medium text-primary hover:underline mb-2" onClick={(e) => { e.preventDefault(); toggleExpand(q.id); }}>
+                      {q.title}
+                    </a>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex items-center">
+                          <ChevronUp size={14} />
+                          <span>{q.votes}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <MessageCircle size={12} />
+                          <span>{q.answers}</span>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">{q.subject}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
-        ))}
+        </div>
       </div>
     </div>
   );

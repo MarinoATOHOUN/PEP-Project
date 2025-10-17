@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from src.models.user import db, User
-from src.models.notification import Notification, Opportunity
-from src.routes.auth import token_required
+from ..models.user import db, User
+from ..models.notification import Notification, Opportunity
+from .auth import token_required
 
 notifications_bp = Blueprint('notifications', __name__)
 

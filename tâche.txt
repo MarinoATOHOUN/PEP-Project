@@ -1,0 +1,2 @@
+je veux maintenant travailler avec le frontend :
+Je veux changer de palette de couleur. Je veux utiliser cette palette de couleur : ["#dad7cd","#a3b18a","#588157","#3a5a40","#344e41"]. Change toute les couleurs du frontend et adapte la nouvelle palette de couleur

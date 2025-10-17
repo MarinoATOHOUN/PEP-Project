@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import ReactMde from 'react-mde';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import 'react-mde/lib/styles/css/react-mde-all.css';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
+import BookingModal from '@/components/BookingModal';
 import { 
   Search, 
   Star, 
@@ -14,14 +20,33 @@ import {
   Building,
   Clock,
   Users,
-  Award
+  Award,
+  TrendingUp
 } from 'lucide-react';
+import { mentorsService } from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
 
-const MentorsPage = () => {
+const MentorsPage = ({ onNavigate = () => {}, onOpenConversation = () => {} }) => {
+  const { user, updateUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
+  const [mentors, setMentors] = useState([]);
+  const [popularMentors, setPopularMentors] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showBecomeMentorModal, setShowBecomeMentorModal] = useState(false);
+  const [mentorFormData, setMentorFormData] = useState({
+    specialties: '',
+    experience_years: '',
+    education_level: '',
+    institution: '',
+    bio: ''
+  });
+  const [selectedTab, setSelectedTab] = useState('write');
+  const [expandedMentorId, setExpandedMentorId] = useState(null);
+  const [bookingMentor, setBookingMentor] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const specialties = [
     'Informatique & IA', 'Médecine', 'Ingénierie', 'Économie & Finance',
@@ -37,101 +62,56 @@ const MentorsPage = () => {
     'Tous les niveaux', 'Master', 'Doctorat', 'Professeur', 'Professionnel'
   ];
 
-  const mentors = [
-    {
-      id: 1,
-      name: 'Dr. Amina Hassan',
-      avatar: 'AH',
-      specialty: 'Informatique & IA',
-      country: 'Maroc',
-      institution: 'Université Mohammed V',
-      educationLevel: 'Doctorat',
-      experienceYears: 8,
-      rating: 4.9,
-      totalSessions: 156,
-      bio: 'Spécialiste en intelligence artificielle et machine learning. Passionnée par l\'enseignement et l\'innovation technologique en Afrique.',
-      specialties: ['Python', 'Machine Learning', 'Data Science', 'Deep Learning'],
-      isAvailable: true,
-      responseTime: '< 2h',
-      languages: ['Français', 'Arabe', 'Anglais']
-    },
-    {
-      id: 2,
-      name: 'Prof. John Okafor',
-      avatar: 'JO',
-      specialty: 'Ingénierie',
-      country: 'Nigeria',
-      institution: 'University of Lagos',
-      educationLevel: 'Professeur',
-      experienceYears: 15,
-      rating: 4.8,
-      totalSessions: 203,
-      bio: 'Professeur d\'ingénierie mécanique avec une expertise en énergies renouvelables et développement durable.',
-      specialties: ['Mécanique', 'Énergies renouvelables', 'Thermodynamique', 'CAO'],
-      isAvailable: true,
-      responseTime: '< 4h',
-      languages: ['Anglais', 'Igbo']
-    },
-    {
-      id: 3,
-      name: 'Dr. Sarah Mwangi',
-      avatar: 'SM',
-      specialty: 'Médecine',
-      country: 'Kenya',
-      institution: 'University of Nairobi',
-      educationLevel: 'Doctorat',
-      experienceYears: 12,
-      rating: 4.9,
-      totalSessions: 178,
-      bio: 'Médecin spécialisée en santé publique et épidémiologie. Engagée dans l\'amélioration des systèmes de santé africains.',
-      specialties: ['Santé publique', 'Épidémiologie', 'Médecine préventive', 'Recherche médicale'],
-      isAvailable: false,
-      responseTime: '< 6h',
-      languages: ['Anglais', 'Swahili']
-    },
-    {
-      id: 4,
-      name: 'Dr. Fatima Diallo',
-      avatar: 'FD',
-      specialty: 'Économie & Finance',
-      country: 'Sénégal',
-      institution: 'UCAD Dakar',
-      educationLevel: 'Doctorat',
-      experienceYears: 10,
-      rating: 4.7,
-      totalSessions: 134,
-      bio: 'Économiste spécialisée en développement et politiques publiques. Consultante pour plusieurs organisations internationales.',
-      specialties: ['Macroéconomie', 'Développement', 'Politiques publiques', 'Finance'],
-      isAvailable: true,
-      responseTime: '< 3h',
-      languages: ['Français', 'Wolof', 'Anglais']
-    },
-    {
-      id: 5,
-      name: 'Prof. Ahmed El-Mansouri',
-      avatar: 'AE',
-      specialty: 'Sciences',
-      country: 'Égypte',
-      institution: 'Cairo University',
-      educationLevel: 'Professeur',
-      experienceYears: 20,
-      rating: 4.8,
-      totalSessions: 267,
-      bio: 'Professeur de physique théorique et chercheur en physique quantique. Mentor passionné depuis plus de 10 ans.',
-      specialties: ['Physique quantique', 'Mathématiques', 'Recherche', 'Publications'],
-      isAvailable: true,
-      responseTime: '< 1h',
-      languages: ['Arabe', 'Anglais', 'Français']
+  useEffect(() => {
+    const fetchMentors = async () => {
+      setLoading(true);
+      try {
+        const response = await mentorsService.getMentors();
+        setMentors(response.mentors);
+      } catch (error) {
+        console.error("Failed to fetch mentors:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchPopularMentors = async () => {
+      try {
+        const response = await mentorsService.getMentors({ per_page: 5 });
+        setPopularMentors(response.mentors);
+      } catch (error) {
+        console.error("Failed to fetch popular mentors:", error);
+      }
+    };
+
+    fetchMentors();
+    fetchPopularMentors();
+  }, []);
+
+  const handleBecomeMentorSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const specialties = mentorFormData.specialties.split(',').map(s => s.trim());
+      const payload = { ...mentorFormData, specialties };
+      const response = await mentorsService.becomeMentor(payload);
+      updateUser({ ...user, role: 'mentor' });
+      setShowBecomeMentorModal(false);
+      // Optionally, refresh the mentors list or show a success message
+    } catch (error) {
+      console.error("Failed to become a mentor:", error);
+      alert(error.message || 'Erreur lors de la création du profil mentor');
     }
-  ];
+  };
 
   const filteredMentors = mentors.filter(mentor => {
-    const matchesSearch = mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const user = mentor.user || {};
+    const specialties = mentor.specialties ? JSON.parse(mentor.specialties) : [];
+    const matchesSearch = (user.first_name + ' ' + user.last_name).toLowerCase().includes(searchQuery.toLowerCase()) ||
                          mentor.bio.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         mentor.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSpecialty = !selectedSpecialty || mentor.specialty === selectedSpecialty;
-    const matchesCountry = !selectedCountry || selectedCountry === 'Tous les pays' || mentor.country === selectedCountry;
-    const matchesLevel = !selectedLevel || selectedLevel === 'Tous les niveaux' || mentor.educationLevel === selectedLevel;
+                         specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSpecialty = !selectedSpecialty || specialties.includes(selectedSpecialty);
+    const matchesCountry = !selectedCountry || selectedCountry === 'Tous les pays' || user.country === selectedCountry;
+    const matchesLevel = !selectedLevel || selectedLevel === 'Tous les niveaux' || mentor.education_level === selectedLevel;
     
     return matchesSearch && matchesSpecialty && matchesCountry && matchesLevel;
   });
@@ -156,11 +136,69 @@ const MentorsPage = () => {
             Trouvez le mentor parfait pour votre parcours académique
           </p>
         </div>
-        <Button variant="outline">
-          <Users className="mr-2" size={18} />
-          Devenir mentor
-        </Button>
+        {user && user.role !== 'mentor' && (
+          <Button variant="outline" onClick={() => setShowBecomeMentorModal(true)}>
+            <Users className="mr-2" size={18} />
+            Devenir mentor
+          </Button>
+        )}
       </div>
+
+      {/* Become a mentor modal */}
+      {showBecomeMentorModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowBecomeMentorModal(false)} />
+          <div className="relative w-full max-w-2xl mx-auto bg-card border rounded shadow-lg z-60 overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Devenir Mentor</h3>
+              <button className="text-muted-foreground hover:text-foreground" onClick={() => setShowBecomeMentorModal(false)}>×</button>
+            </div>
+            <form onSubmit={handleBecomeMentorSubmit} className="p-4 space-y-4">
+              <Input
+                placeholder="Spécialités (séparées par des virgules)"
+                value={mentorFormData.specialties}
+                onChange={(e) => setMentorFormData({ ...mentorFormData, specialties: e.target.value })}
+                required
+              />
+              <Input
+                placeholder="Années d'expérience"
+                type="number"
+                value={mentorFormData.experience_years}
+                onChange={(e) => setMentorFormData({ ...mentorFormData, experience_years: e.target.value })}
+                required
+              />
+              <Input
+                placeholder="Niveau d'éducation"
+                value={mentorFormData.education_level}
+                onChange={(e) => setMentorFormData({ ...mentorFormData, education_level: e.target.value })}
+                required
+              />
+              <Input
+                placeholder="Institution"
+                value={mentorFormData.institution}
+                onChange={(e) => setMentorFormData({ ...mentorFormData, institution: e.target.value })}
+                required
+              />
+              <div className="prose prose-sm sm:prose-base max-w-none">
+                <label className="text-sm font-medium text-foreground mb-2 block">Bio (Markdown supporté)</label>
+                <ReactMde
+                  value={mentorFormData.bio}
+                  onChange={(bio) => setMentorFormData({ ...mentorFormData, bio })}
+                  selectedTab={selectedTab}
+                  onTabChange={setSelectedTab}
+                  generateMarkdownPreview={(markdown) =>
+                    Promise.resolve(<ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>)
+                  }
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setShowBecomeMentorModal(false)}>Annuler</Button>
+                <Button type="submit">Soumettre</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Filtres et recherche */}
       <Card>
@@ -221,7 +259,7 @@ const MentorsPage = () => {
         <Card className="text-center">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-green-600">
-              {filteredMentors.filter(m => m.isAvailable).length}
+              {filteredMentors.filter(m => m.is_available).length}
             </div>
             <div className="text-sm text-muted-foreground">Disponibles</div>
           </CardContent>
@@ -229,7 +267,7 @@ const MentorsPage = () => {
         <Card className="text-center">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-blue-600">
-              {(filteredMentors.reduce((sum, m) => sum + m.rating, 0) / filteredMentors.length).toFixed(1)}
+              {(filteredMentors.reduce((sum, m) => sum + m.rating, 0) / filteredMentors.length || 0).toFixed(1)}
             </div>
             <div className="text-sm text-muted-foreground">Note moyenne</div>
           </CardContent>
@@ -237,108 +275,176 @@ const MentorsPage = () => {
         <Card className="text-center">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-yellow-600">
-              {filteredMentors.reduce((sum, m) => sum + m.totalSessions, 0)}
+              {filteredMentors.reduce((sum, m) => sum + (m.totalSessions || 0), 0)}
             </div>
             <div className="text-sm text-muted-foreground">Sessions totales</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Liste des mentors */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredMentors.map((mentor) => (
-          <Card key={mentor.id} className="card-hover">
-            <CardContent className="pt-6">
-              <div className="flex items-start space-x-4 mb-4">
-                <div className="w-16 h-16 bg-gradient-africa rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-bold text-lg">{mentor.avatar}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="text-lg font-semibold text-foreground truncate">
-                      {mentor.name}
-                    </h3>
-                    <div className="flex items-center space-x-1">
-                      {renderStars(mentor.rating)}
-                      <span className="text-sm text-muted-foreground ml-1">
-                        {mentor.rating}
-                      </span>
+      {/* Main content: Mentors list and sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main column: Mentors list */}
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredMentors.map((mentor) => {
+            const user = mentor.user || {};
+            const specialties = mentor.specialties ? JSON.parse(mentor.specialties) : [];
+            return (
+              <Card key={mentor.id} className="card-hover">
+                <CardContent className="pt-6">
+                  <div className="flex items-start space-x-4 mb-4">
+                    <div className="w-16 h-16 bg-gradient-africa rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-lg">{user.first_name ? user.first_name[0] : ''}{user.last_name ? user.last_name[0] : ''}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-lg font-semibold text-foreground truncate">
+                          {user.first_name} {user.last_name}
+                        </h3>
+                        <div className="flex items-center space-x-1">
+                          {renderStars(mentor.rating)}
+                          <span className="text-sm text-muted-foreground ml-1">
+                            {mentor.rating}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-primary font-medium">{specialties.join(', ')}</p>
+                      <div className="flex items-center text-sm text-muted-foreground mt-1">
+                        <MapPin size={12} className="mr-1" />
+                        {user.country}
+                        <span className="mx-2">•</span>
+                        <Building size={12} className="mr-1" />
+                        {mentor.institution}
+                      </div>
                     </div>
                   </div>
-                  <p className="text-primary font-medium">{mentor.specialty}</p>
-                  <div className="flex items-center text-sm text-muted-foreground mt-1">
-                    <MapPin size={12} className="mr-1" />
-                    {mentor.country}
-                    <span className="mx-2">•</span>
-                    <Building size={12} className="mr-1" />
-                    {mentor.institution}
-                  </div>
-                </div>
-              </div>
 
-              <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                {mentor.bio}
-              </p>
-
-              <div className="flex flex-wrap gap-2 mb-4">
-                {mentor.specialties.slice(0, 3).map((specialty, index) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {specialty}
-                  </Badge>
-                ))}
-                {mentor.specialties.length > 3 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{mentor.specialties.length - 3}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {mentor.experienceYears} ans
+                  <div className="text-muted-foreground text-sm mb-4 cursor-pointer" onClick={() => setExpandedMentorId(expandedMentorId === mentor.id ? null : mentor.id)}>
+                    {expandedMentorId === mentor.id ? (
+                      <MarkdownRenderer content={mentor.bio} className="text-sm" />
+                    ) : (
+                      <p className="line-clamp-2">{mentor.bio}</p>
+                    )}
+                    {mentor.bio && mentor.bio.length > 100 && (
+                      <span className="text-primary text-xs mt-1 inline-block">
+                        {expandedMentorId === mentor.id ? 'Voir moins' : 'Voir plus'}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs text-muted-foreground">Expérience</div>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {mentor.totalSessions}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Sessions</div>
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">
-                    {mentor.responseTime}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Réponse</div>
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${mentor.isAvailable ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <span className="text-sm text-muted-foreground">
-                    {mentor.isAvailable ? 'Disponible' : 'Occupé'}
-                  </span>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <MessageCircle size={14} className="mr-1" />
-                    Message
-                  </Button>
-                  <Button size="sm" disabled={!mentor.isAvailable}>
-                    <Calendar size={14} className="mr-1" />
-                    Réserver
-                  </Button>
-                </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {specialties.slice(0, 3).map((specialty) => (
+                      <Badge key={specialty} variant="secondary" className="text-xs">
+                        {specialty}
+                      </Badge>
+                    ))}
+                    {specialties.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{specialties.length - 3}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mb-4 text-center">
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {mentor.experience_years} ans
+                      </div>
+                      <div className="text-xs text-muted-foreground">Expérience</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {mentor.totalSessions || 0}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Sessions</div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">
+                        {mentor.responseTime || '> 24h'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">Réponse</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-2 h-2 rounded-full ${mentor.is_available ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="text-sm text-muted-foreground">
+                        {mentor.is_available ? 'Disponible' : 'Occupé'}
+                      </span>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        // If the mentor has a user id, open the Messages page and preselect their conversation
+                        const uid = mentor.user?.id;
+                        if (uid) {
+                          onOpenConversation(uid);
+                          onNavigate('messages');
+                        } else {
+                          // fallback: navigate to messages page
+                          onNavigate('messages');
+                        }
+                      }}>
+                        <MessageCircle size={14} className="mr-1" />
+                        Message
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        disabled={!mentor.is_available}
+                        onClick={() => {
+                          setBookingMentor(mentor);
+                          setShowBookingModal(true);
+                        }}
+                      >
+                        <Calendar size={14} className="mr-1" />
+                        Réserver
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          )}
+        </div>
+
+        {/* Sidebar: Popular Mentors */}
+        <div className="lg:col-span-1 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <TrendingUp className="mr-2" />
+                Mentors populaires
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {popularMentors.map((mentor) => {
+                  const user = mentor.user || {};
+                  const specialties = mentor.specialties ? JSON.parse(mentor.specialties) : [];
+                  return (
+                    <div key={mentor.id} className="flex items-center space-x-4 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="w-12 h-12 bg-gradient-africa rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-base">{user.first_name ? user.first_name[0] : ''}{user.last_name ? user.last_name[0] : ''}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{user.first_name} {user.last_name}</p>
+                        <p className="text-xs text-primary truncate">{specialties.join(', ')}</p>
+                        <div className="flex items-center text-xs text-muted-foreground mt-1">
+                          <Star size={12} className="mr-1 text-yellow-500 fill-current" />
+                          {mentor.rating} ({mentor.totalSessions || 0} sessions)
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
-        ))}
+        </div>
       </div>
 
-      {filteredMentors.length === 0 && (
-        <Card className="text-center py-12">
+      {filteredMentors.length === 0 && !loading && (
+        <Card className="text-center py-12 lg:col-span-3">
           <CardContent>
             <Users className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -352,6 +458,22 @@ const MentorsPage = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Booking Modal */}
+      {bookingMentor && (
+        <BookingModal
+          mentor={bookingMentor}
+          isOpen={showBookingModal}
+          onClose={() => {
+            setShowBookingModal(false);
+            setBookingMentor(null);
+          }}
+          onBookingSuccess={() => {
+            // Rafraîchir la liste des mentors si nécessaire
+            console.log('Réservation réussie');
+          }}
+        />
       )}
     </div>
   );

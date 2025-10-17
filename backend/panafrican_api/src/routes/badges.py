@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from src.models.user import db, User
-from src.models.badge import Badge, UserBadge, UserPoints
-from src.routes.auth import token_required
+from ..models.user import db, User
+from ..models.badge import Badge, UserBadge, UserPoints
+from .auth import token_required
 
 badges_bp = Blueprint('badges', __name__)
 

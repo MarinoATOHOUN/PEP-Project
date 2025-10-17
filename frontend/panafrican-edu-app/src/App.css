@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./styles/react-mde-custom.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -43,73 +44,74 @@
 
 :root {
   --radius: 0.625rem;
-  /* Couleurs panafricaines jour */
-  --background: #F5F5F5;
-  --foreground: #0D1B2A;
-  --card: #FFFFFF;
-  --card-foreground: #0D1B2A;
-  --popover: #FFFFFF;
-  --popover-foreground: #0D1B2A;
-  --primary: #1B4965;
-  --primary-foreground: #FFFFFF;
-  --secondary: #FFD166;
-  --secondary-foreground: #0D1B2A;
-  --muted: #F5F5F5;
-  --muted-foreground: #6B7280;
-  --accent: #FFD166;
-  --accent-foreground: #0D1B2A;
-  --destructive: #EF4444;
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #1B4965;
-  --chart-1: #1B4965;
-  --chart-2: #FFD166;
-  --chart-3: #0D1B2A;
-  --chart-4: #F5F5F5;
-  --chart-5: #6B7280;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #0D1B2A;
-  --sidebar-primary: #1B4965;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #FFD166;
-  --sidebar-accent-foreground: #0D1B2A;
-  --sidebar-border: #E5E7EB;
-  --sidebar-ring: #1B4965;
+  /* New palette (light mode) */
+  /* palette: [#9381ff,#b8b8ff,#f8f7ff,#ffeedd,#ffd8be] */
+  --background: #f8f7ff; /* soft very-light background */
+  --foreground: #1a1b1f; /* near-black for readable text */
+  --card: #f8f7ff; /* cards use same subtle background */
+  --card-foreground: #1a1b1f;
+  --popover: #f8f7ff;
+  --popover-foreground: #1a1b1f;
+  --primary: #9381ff; /* soft purple */
+  --primary-foreground: #f8f7ff;
+  --secondary: #b8b8ff; /* gentle secondary lavender */
+  --secondary-foreground: #1a1b1f;
+  --muted: #ffeedd; /* warm muted */
+  --muted-foreground: #6b492f;
+  --accent: #ffd8be; /* pale peach accent */
+  --accent-foreground: #1a1b1f;
+  --destructive: #ff6b6b; /* red for destructive actions */
+  --border: #efeafc;
+  --input: #efeafc;
+  --ring: #9381ff;
+  --chart-1: #9381ff;
+  --chart-2: #b8b8ff;
+  --chart-3: #ffd8be;
+  --chart-4: #ffeedd;
+  --chart-5: #6b492f;
+  --sidebar: #f0ecff;
+  --sidebar-foreground: #1a1b1f;
+  --sidebar-primary: #9381ff;
+  --sidebar-primary-foreground: #f8f7ff;
+  --sidebar-accent: #ffd8be;
+  --sidebar-accent-foreground: #1a1b1f;
+  --sidebar-border: #e9e6fb;
+  --sidebar-ring: #9381ff;
 }
 
 .dark {
-  /* Couleurs panafricaines nuit */
-  --background: #0D1B2A;
-  --foreground: #F5F5F5;
-  --card: #1B4965;
-  --card-foreground: #F5F5F5;
-  --popover: #1B4965;
-  --popover-foreground: #F5F5F5;
-  --primary: #FFD166;
-  --primary-foreground: #0D1B2A;
-  --secondary: #1B4965;
-  --secondary-foreground: #F5F5F5;
-  --muted: #1B4965;
-  --muted-foreground: #9CA3AF;
-  --accent: #FFD166;
-  --accent-foreground: #0D1B2A;
-  --destructive: #EF4444;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.1);
-  --ring: #FFD166;
-  --chart-1: #FFD166;
-  --chart-2: #1B4965;
-  --chart-3: #F5F5F5;
-  --chart-4: #9CA3AF;
-  --chart-5: #6B7280;
-  --sidebar: #1B4965;
-  --sidebar-foreground: #F5F5F5;
-  --sidebar-primary: #FFD166;
-  --sidebar-primary-foreground: #0D1B2A;
-  --sidebar-accent: #0D1B2A;
-  --sidebar-accent-foreground: #F5F5F5;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #FFD166;
+  /* New palette (dark mode) — soft dark adapted to purple theme */
+  --background: #141218; /* very dark background */
+  --foreground: #f8f7ff; /* light text */
+  --card: #1b1426; /* slightly lighter card */
+  --card-foreground: #f8f7ff;
+  --popover: #1b1426;
+  --popover-foreground: #f8f7ff;
+  --primary: #b8b8ff; /* brighter primary on dark */
+  --primary-foreground: #141218;
+  --secondary: #9381ff;
+  --secondary-foreground: #141218;
+  --muted: #3a2f2a;
+  --muted-foreground: #ffeedd;
+  --accent: #ffd8be;
+  --accent-foreground: #141218;
+  --destructive: #ff6b6b;
+  --border: rgba(200, 190, 255, 0.06);
+  --input: rgba(200, 190, 255, 0.04);
+  --ring: #b8b8ff;
+  --chart-1: #b8b8ff;
+  --chart-2: #9381ff;
+  --chart-3: #ffd8be;
+  --chart-4: #ffeedd;
+  --chart-5: #6b492f;
+  --sidebar: #0f0c10;
+  --sidebar-foreground: #f8f7ff;
+  --sidebar-primary: #9381ff;
+  --sidebar-primary-foreground: #141218;
+  --sidebar-accent: #ffd8be;
+  --sidebar-accent-foreground: #141218;
+  --sidebar-border: rgba(200, 190, 255, 0.04);
+  --sidebar-ring: #b8b8ff;
 }
 
 @layer base {
@@ -135,10 +137,10 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 5px rgba(255, 209, 102, 0.5);
+    box-shadow: 0 0 6px rgba(147,129,255,0.45);
   }
   50% {
-    box-shadow: 0 0 20px rgba(255, 209, 102, 0.8);
+    box-shadow: 0 0 24px rgba(147,129,255,0.65);
   }
 }
 
@@ -157,9 +159,78 @@
 
 /* Gradient backgrounds */
 .bg-gradient-africa {
-  background: linear-gradient(135deg, #1B4965 0%, #FFD166 100%);
+  background: linear-gradient(135deg, #9381ff 0%, #f8f7ff 100%);
 }
 
 .bg-gradient-night {
-  background: linear-gradient(135deg, #0D1B2A 0%, #1B4965 100%);
+  background: linear-gradient(135deg, #141218 0%, #9381ff 100%);
+}
+
+/* Styles pour le contenu Markdown */
+.markdown-content {
+  @apply text-foreground;
+}
+
+.markdown-content a {
+  @apply text-primary hover:text-primary/80 underline transition-colors;
+}
+
+.markdown-content code {
+  @apply bg-accent/20 text-accent-foreground px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.markdown-content pre {
+  @apply my-4 rounded-lg overflow-x-auto;
+}
+
+.markdown-content blockquote {
+  @apply border-l-4 border-primary/50 bg-accent/10 pl-4 py-2 my-4 italic text-muted-foreground;
+}
+
+.markdown-content table {
+  @apply w-full border-collapse my-4;
+}
+
+.markdown-content th {
+  @apply bg-primary/10 border border-border px-4 py-2 text-left font-semibold;
+}
+
+.markdown-content td {
+  @apply border border-border px-4 py-2;
+}
+
+.markdown-content img {
+  @apply max-w-full h-auto rounded-lg my-4 border border-border shadow-sm;
+}
+
+.markdown-content ul {
+  @apply list-disc list-inside mb-4 space-y-2 ml-4;
+}
+
+.markdown-content ol {
+  @apply list-decimal list-inside mb-4 space-y-2 ml-4;
+}
+
+.markdown-content h1 {
+  @apply text-3xl font-bold mb-4 mt-6 border-b-2 border-primary/30 pb-2;
+}
+
+.markdown-content h2 {
+  @apply text-2xl font-bold mb-3 mt-5 border-b border-primary/20 pb-1;
+}
+
+.markdown-content h3 {
+  @apply text-xl font-semibold mb-2 mt-4;
+}
+
+.markdown-content h4 {
+  @apply text-lg font-semibold mb-2 mt-3;
+}
+
+.markdown-content p {
+  @apply mb-4 leading-relaxed;
+}
+
+.markdown-content hr {
+  @apply my-6 border-t-2 border-border;
 }

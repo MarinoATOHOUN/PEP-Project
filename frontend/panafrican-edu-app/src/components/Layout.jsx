@@ -15,16 +15,15 @@ import {
   BookOpen,
   Home
 } from 'lucide-react';
-import { notificationsService } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
 
 const Layout = ({ children, currentPage = 'home', onNavigate }) => {
   const [isDark, setIsDark] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState(3);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notificationList, setNotificationList] = useState([]);
   const { user, isAuthenticated, logout } = useAuth();
+  const { unreadCount, notifications, markAllAsRead, fetchNotifications } = useNotifications();
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
   // Thème automatique jour/nuit selon l'heure
@@ -50,19 +49,16 @@ const Layout = ({ children, currentPage = 'home', onNavigate }) => {
     { id: 'home', label: 'Accueil', icon: Home },
     { id: 'questions', label: 'Questions', icon: MessageCircle },
     { id: 'mentors', label: 'Mentors', icon: Users },
+    { id: 'messages', label: 'Messages', icon: MessageCircle },
     { id: 'badges', label: 'Badges', icon: Award },
     { id: 'opportunities', label: 'Opportunités', icon: BookOpen }
   ];
 
-  const handleShowNotifications = async () => {
+  const handleShowNotifications = () => {
     if (!showNotifications) {
       setShowProfile(false); // Ferme le profil si ouvert
-      try {
-        const res = await notificationsService.getNotifications();
-        setNotificationList(res.notifications || []);
-      } catch (e) {
-        setNotificationList([]);
-      }
+      fetchNotifications();
+      markAllAsRead();
     }
     setShowNotifications(!showNotifications);
   };
@@ -135,9 +131,9 @@ const Layout = ({ children, currentPage = 'home', onNavigate }) => {
               {/* Notifications */}
               <Button variant="ghost" size="icon" className="relative" onClick={handleShowNotifications}>
                 <Bell size={20} />
-                {notifications > 0 && (
+                {unreadCount > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs bg-destructive">
-                    {notifications}
+                    {unreadCount}
                   </Badge>
                 )}
               </Button>
@@ -148,10 +144,10 @@ const Layout = ({ children, currentPage = 'home', onNavigate }) => {
                     <button className="text-muted-foreground hover:text-foreground" onClick={() => setShowNotifications(false)}>&times;</button>
                   </div>
                   <ul>
-                    {notificationList.length === 0 ? (
+                    {notifications.length === 0 ? (
                       <li className="p-2 text-muted-foreground">Aucune notification</li>
                     ) : (
-                      notificationList.map(n => (
+                      notifications.map(n => (
                         <li key={n.id} className="p-2 border-b">
                           <span className="font-semibold">{n.title}</span><br />
                           <span className="text-sm text-muted-foreground">{n.message}</span>
@@ -159,6 +155,9 @@ const Layout = ({ children, currentPage = 'home', onNavigate }) => {
                       ))
                     )}
                   </ul>
+                  <div className="p-2 border-t">
+                    <Button variant="link" size="sm" onClick={markAllAsRead}>Tout marquer comme lu</Button>
+                  </div>
                 </div>
               )}
 
